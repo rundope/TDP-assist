@@ -68,3 +68,42 @@ io와 db는 서로 독립이지만 io를 먼저 둔다. io 단계에서 처음�
 - pytest와 ruff 설정을 넣는다.
 - `tdp-assist --version`이 동작하는 최소 CLI를 만든다.
 - 계산 코드는 넣지 않는다.
+
+---
+
+## Step 3 사전 논의 — deconvolution 엔진의 신뢰성 (사용자 제기, 2026-10-08)
+
+Step 3에서 확정할 주제지만, 사용자가 먼저 제기해서 논의를 시작했다. 결정은 아직 하지 않았다.
+
+### 사용자 입장
+
+- TopFD를 믿을 수 있는지 의문이 있다.
+- Xtract를 선호한다. Xtract가 불가능하면 THRASH 기반으로 하거나, THRASH와 TopFD의 장점만 뽑아 하이브리드로 재구성하는 방안을 원한다.
+
+### 확인한 근거
+
+1. **개발자 자체 벤치마크.** TopFD 논문(Basharat et al. 2023)은 7개 데이터셋에서 TopFD, ProMex, FLASHDeconv, Xtract를 비교했다. 유효 feature 비율은 TopFD·FLASHDeconv·Xtract가 비슷했고, 반복 측정 재현성은 TopFD가 가장 높았다고 보고했다. TopFD의 전신인 MS-Deconv 논문(Liu et al. 2010)도 THRASH와 Xtract보다 올바른 monoisotopic mass를 더 많이 찾았다고 보고했다. 두 결과 모두 개발자 자체 평가다.
+2. **독립 비교 연구.** Tabb et al. 2023(J Proteome Res 22(7):2199–2217)은 Xtract, Bruker AutoMSn, Mascot Distiller, TopFD, FLASHDeconv를 Orbitrap과 Q-TOF 데이터에서 비교했다. Deconvolution 엔진마다 precursor charge와 질량 판정이 달랐고, 이것이 동정 결과의 차이로 이어졌다. 동정된 proteoform의 상당수가 네 파이프라인 중 하나에서만 나왔고, 저자들은 실험마다 최소 두 가지 검색 파이프라인을 쓰라고 권고했다.
+3. **Xtract의 한계 보고.** FLASHDeconv 논문(Jeong et al. 2020)은 Xtract와 ProMex가 20–100 kDa 구간에서 feature를 거의 보고하지 못했다고 적었다. 이 구간은 isotope가 분리되지 않는 경우가 많다.
+4. **THRASH 공개 구현.** THRASH는 PNNL의 DeconTools(Decon2LS, C#, 오픈소스)에 구현되어 있다(Jaitly et al. 2009). 현재 플랫폼 지원 범위는 확인하지 못했다.
+
+### THRASH와 TopFD의 단계별 비교
+
+| 처리 단계 | THRASH | TopFD | 판단 |
+|---|---|---|---|
+| 입력 | Profile 신호를 그대로 쓸 수 있다. | Centroid 입력을 기대한다. | THRASH가 원 신호 정보를 더 쓴다. |
+| Charge 판정 | Patterson/Fourier 자기상관으로 정한다. | 여러 charge 후보를 만들어 비교한다. | TopFD가 harmonic 오류에 유리할 것으로 본다(추정). |
+| Mono mass 결정 | Averagine 패턴을 least-squares로 맞춘다. | 패턴 유사도 점수와 머신러닝 평가를 쓴다. | 우열을 확인하지 못했다. |
+| 겹친 envelope | 큰 peak부터 맞추고 빼는 greedy 방식이다. | 후보 전체에서 조합을 고르는 방식이다. | TopFD는 앞 단계 오류가 뒤로 번지지 않는다. |
+| LC 방향 통합 | 없다(scan 단위). | 여러 MS1 scan과 charge state를 feature로 묶는다. | TopFD의 precursor 질량이 더 안정적이다. |
+| 공개 | 알고리즘이 공개되어 있고 DeconTools에 구현되어 있다. | 코드가 공개되어 있다(Apache-2.0). | — |
+
+두 방식의 장점을 합치면 "TopFD로 찾고, THRASH식 profile fit으로 다듬는" 구조가 된다. TopFD가 찾은 envelope마다 원래 profile 신호에 least-squares로 다시 맞춰 mono mass를 보정하고, 맞지 않는 envelope는 걸러내는 방식이다.
+
+### 설계자 권고 (승인 대기)
+
+- 하이브리드 방향에는 동의한다. 다만 **결과 수준 하이브리드**를 먼저 한다. 여러 엔진(TopFD, FLASHDeconv, 가능하면 Xtract)의 결과를 모으고, precursor 질량이 엇갈리면 모두 후보로 넘겨 fragment 증거로 판정한다.
+- **코드 수준 하이브리드**(THRASH식 profile re-fit, THRASH 자체 구현)는 벤치마크가 필요성을 보여줄 때 착수한다.
+- Xtract는 구현할 수 없지만 결과를 읽어 오는 것은 가능하다. 예전 ProSightPC cRAWler의 PUF, FreeStyle이나 BioPharma Finder의 Xtract 결과가 그 경로다.
+- Step 3을 3a(엔진 벤치마크)와 3b(결과 수준 하이브리드)로 나눈다.
+

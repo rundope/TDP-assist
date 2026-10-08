@@ -33,7 +33,7 @@
 
 ### 2.1 파이프라인
 
-ProSightPC에서는 cRAWler가 Thermo RAW를 읽고, Xtract(THRASH 계열 알고리즘)로 deconvolution해서 PUF(ProSight Upload Format) 파일을 만든다.
+ProSightPC에서는 cRAWler가 Thermo RAW를 읽고, Xtract로 deconvolution해서 PUF(ProSight Upload Format) 파일을 만든다. Xtract는 averagine isotope 패턴을 관측 peak에 맞춰 monoisotopic mass를 고르는 방식이다. THRASH와 같은 계열로 흔히 설명되지만, THRASH에서 파생되었다는 근거는 Thermo 공개 문서로 확인하지 못했다(2026-10-08 정정).
 검색 대상은 UniProt annotation을 조합해 만든 proteoform database(Proteome Warehouse, "shotgun annotation")다.
 매치마다 P-score와 E-value를 매기고, 여러 검색을 search tree로 연결한다.
 
