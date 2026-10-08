@@ -7,12 +7,12 @@
 |---|---|---|---|---|
 | D-001 | Vendor 파일은 직접 읽지 않는다. msconvert(4개 vendor)와 ThermoRawFileParser(Thermo)로 mzML(centroid)로 변환한 뒤 처리한다. | Reader 유지보수가 1종으로 줄고, Windows 전용 SDK 문제를 외부 도구가 해결하며, deconvolution 엔진이 mzML을 입력으로 받는다. (§3.3) | R-02, R-03 | Proposed |
 | D-002 | Deconvolution은 외부 엔진을 adapter로 호출한다. 내부 계약은 msalign 포맷이다. 기본 엔진은 TopFD이고 FLASHDeconv를 두 번째로 붙이며, 최종 기본값은 Phase 1 비교 후 정한다. | 1차 검색은 deconvoluted mass로 해야 계산량이 100배 이상 줄어든다. 같은 msalign을 TopPIC에 넣어 교차 검증할 수 있다. (§3.2, §3.6) | R-03 | Proposed |
-| D-003 | 언어는 Python 3.11+이고, numpy와 numba를 쓴다. 계산 kernel은 인터페이스 뒤에 두고, 병목이 측정되면 Rust로 교체한다. | 사용자가 직접 읽고 고칠 수 있어야 단계적 진행이 가능하다. 계산량 추정상 numba로 충분하다. (§4.3, §5.4) | R-07 | Proposed |
+| D-003 | 언어는 Python 3.11+로 한다. Phase 1의 실행 의존성은 numpy 하나로 제한하고, numba는 Phase 2 Biomarker에서 도입한다. 계산 kernel은 인터페이스 뒤에 두고, 병목이 측정되면 그 kernel만 Rust로 교체한다. | 단계마다 중간 결과를 눈으로 확인하기 가장 쉽고, 과학 계산 생태계를 그대로 쓸 수 있다. 계산량 추정상 numba로 충분하다. C#의 장점(vendor SDK가 .NET)은 D-001 하에서 Phase 6까지 쓰이지 않는다. (§4.3, §5.4, [phase1/PHASE1_LOG.md](phase1/PHASE1_LOG.md) Step 1) | R-07 | Proposed (2026-10-08 개정) |
 | D-004 | Proteoform 표기는 ProForma 2.0으로 통일한다. | HUPO-PSI 표준이므로 다른 도구와 결과를 주고받을 수 있다. (§4.4) | R-01 | Proposed |
 | D-005 | 검색 모드는 하나의 proteoform 가설 모델의 preset으로 구현한다. Absolute, Δm, Biomarker를 먼저 만들고 Hybrid는 나중에 만든다. | 모드 추가가 설정 변경으로 끝나고, 절단과 수식이 함께 있는 proteoform으로 확장할 수 있다. (§5.5) | R-04, R-05, R-06 | Proposed |
 | D-006 | P-score와 E-value는 ProSight 호환 점수로 유지한다. 합격선은 Phase 2부터 target-decoy FDR(tier별, PrSM/proteoform/protein 계층별)로 정한다. | E-value cutoff로는 실제 오류율을 알 수 없다. Search context를 무시하면 FDR이 20배 넘게 틀릴 수 있다. (§5.6, §5.7) | R-04, R-05, R-06 | Proposed |
 | D-007 | 결과는 TSV와 SQLite로 저장하고, 검토용 HTML fragment map을 만든다. GUI는 Phase 5에서 만든다. | 초기에는 엔진의 정확도 검증이 우선이고, HTML만으로 결과 검토가 가능하다. (§7) | R-01 | Proposed |
-| D-008 | Phase 1 범위는 Absolute mass vertical slice로 하고, ProSight PC 결과와 대조하는 것을 완료 기준으로 삼는다. | 사용자의 과거 ProSight 결과가 가장 신뢰할 수 있는 검증 기준이다. (§9.1) | R-04, R-07 | Proposed |
+| D-008 | Phase 1 범위는 Absolute mass vertical slice로 하고, ProSight PC 결과와 대조하는 것을 완료 기준으로 삼는다. 진행은 하위 단계마다 논의 → 결정 기록 → 구현 → 사용자 확인 순서로 한다. | 사용자의 과거 ProSight 결과가 가장 신뢰할 수 있는 검증 기준이다. 진행 방식은 사용자 지시다. (§9.1) | R-04, R-07 | **Accepted** (2026-10-08) |
 
 ## 열린 질문 (Question)
 
